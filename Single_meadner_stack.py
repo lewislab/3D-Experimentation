@@ -6,12 +6,9 @@ silver_length = 5
 silver_width = 0.25
 total_x_width = 10
 orgin = (60, 50)
-extruder_offset = (0,0)#(75, 2)
+extruder_offset = (62.95,1)
 FDM_feed = 15
 silver_feed = 4
-
-
-
 
 
 # Robomama Outfile
@@ -19,7 +16,8 @@ silver_feed = 4
 
 # Travis' Computer Outfile
 #outfile = r"C:\Users\tbusbee\Documents\GitHub\Muscular-Thin-Films\MTF_out-testing.txt"
-outfile = r"/Users/busbees/Documents/Code/Muscular-Thin-Films\MTF_out-testing.txt"
+#outfile = r"C:\Users\Administrator\Documents\GitHub\LewisResearchGroup\FILE_NAME.gcode"
+outfile = r"Z:\jlewis\User Files\Chong\mecode\verticalTraceZchanged.gcode"
 
 
 
@@ -28,8 +26,8 @@ cal_data = None#load_and_curate(calfile, reset_start=(2, -2))
 
 g = G(
     outfile=outfile,
-    header=None,
-    footer=None,
+    header= r"C:\Users\Administrator\Documents\Academics\Internship and REU\Harvard\Coding\Vertical Trace\header.gcode",
+    footer= r"C:\Users\Administrator\Documents\Academics\Internship and REU\Harvard\Coding\Vertical Trace\footer.gcode",
     #cal_data=cal_data,
     print_lines=False,
     extrude = False,
@@ -74,11 +72,21 @@ def calc_extrude_rate(x, y, extrude=True, relative = True, extrusion_width = 0.4
     print area
 
 def nozzle_change(nozzle):
-    g.move(z=1)
-    if nozzle == 'A':
-        g.move(*extruder_offset) 
-    if nozzle == 'B':
-        g.move(-extruder_offset[0], -extruder_offset[1])   
+    g.move(z=5)
+    print ('T' + str(nozzle))
+    if nozzle == '0':
+        g.move(*extruder_offset)
+
+    if nozzle == '1':  
+        g.move(-extruder_offset[0], -extruder_offset[1]) 
+        print "END FDM G CODE"
+        print "M400"
+        print "M42 P32 S0"
+        print "G91"
+        print "G1 Z5 F6000"
+        print "G90"
+        print "SEPARATE HERE\n"
+
             
 def concentric_rectangle():
     extra = 0.5*silver_width + 0.5*g.extrusion_width
@@ -98,26 +106,29 @@ def concentric_rectangle():
 #calc_extrude_rate(x = 30, y = 30, extrude=True, relative = False, extrusion_width = 0.4, 
 #                    layer_height = 0.22, multiplier = 1, filament_diameter = 1.75)
 def silver_3D(layers):
+    countZ = 0;
     g.abs_move(orgin[0], orgin[1] - 0.5*silver_width - 0.5*g.extrusion_width)
     g.set_home(x=0, y=(- 0.5*silver_width - 0.5*g.extrusion_width))
     for i in range(layers):
         g.abs_move(x=0, y=- 0.5*silver_width - 0.5*g.extrusion_width)
+#       g.move(z= countZ*g.layer_height);
         g.feed(FDM_feed)
         g.extrude = True
-        concentric_rectangle()
+        concentric_rectangle() #2D rectangle
         g.extrude = False
-        g.move(z=1)
+        g.move(z=1) #Retract
         g.abs_move(x=0, y=0)
-        nozzle_change('B')
+        nozzle_change('1')
         g.set_home(x=0, y=0)
-        g.feed(silver_feed)
+        g.feed(silver_feed) #F
         g.meander(x=silver_length, y= silver_width, spacing = silver_width, start = 'LL', orientation = 'x')
         g.abs_move(0, 0)
-        g.move(z=g.layer_height)
-        nozzle_change('A')
+        g.move(z=g.layer_height*countZ)
+        nozzle_change('0')
         g.set_home(x=0, y=0)
+        countZ = countZ + 1
         
 
-silver_3D(layers = 5)
-g.view()
+silver_3D(layers = 10)
+#g.view()
 g.teardown()
