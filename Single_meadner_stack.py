@@ -34,8 +34,7 @@ g = G(
     layer_height = 0.22, 
     extrusion_width = 0.4,
     filament_diameter = 1.75,
-    extrusion_multiplier = 1,   
-    
+    extrusion_multiplier = 1,
     )
 
 g.cal_data = None #np.array([[2, -2, 0], [70, -2, -10], [70, -48, -20], [2, -48, -10]])
@@ -72,21 +71,20 @@ def calc_extrude_rate(x, y, extrude=True, relative = True, extrusion_width = 0.4
     print area
 
 def nozzle_change(nozzle):
-    g.move(z=5)
+    g.move(z=5) # rectraction for change of nozzle
+    g.write('T' + str(nozzle))
     if nozzle == '0':
         g.move(*extruder_offset)
-    print ('T' + str(nozzle))
-
     if nozzle == '1':  
         g.move(-extruder_offset[0], -extruder_offset[1]) 
-        print "END FDM G CODE"
-        print "M400"
-        print "M42 P32 S0"
-        print "G91"
-        print "G1 Z5 F6000"
-        print "G90"
-        print "SEPARATE HERE\n"
-
+        g.write("END FDM G CODE")
+        g.write("M400")
+        g.write("M42 P32 S0")
+        g.write("G91")
+        g.write("G1 Z5 F6000")
+        g.write("G90")
+        g.write("SEPARATE HERE\n")
+    g.move(z=-5) #Recompensate retraction from change_nozzle
             
 def concentric_rectangle():
     extra = 0.5*silver_width + 0.5*g.extrusion_width
@@ -106,7 +104,7 @@ def concentric_rectangle():
 #calc_extrude_rate(x = 30, y = 30, extrude=True, relative = False, extrusion_width = 0.4, 
 #                    layer_height = 0.22, multiplier = 1, filament_diameter = 1.75)
 def silver_3D(layers):
-    countZ = 0;
+#    countZ = 0;
     g.abs_move(orgin[0], orgin[1] - 0.5*silver_width - 0.5*g.extrusion_width)
     g.set_home(x=0, y=(- 0.5*silver_width - 0.5*g.extrusion_width))
     for i in range(layers):
@@ -118,17 +116,16 @@ def silver_3D(layers):
         g.extrude = False
         g.move(z=1) #Retract
         g.abs_move(x=0, y=0)
-        g.nozzle_change('1')
-        g.move(z=-5) #Recompensate retraction from change_nozzle
+        nozzle_change('1')
         g.set_home(x=0, y=0)
         g.feed(silver_feed) #F
         g.meander(x=silver_length, y= silver_width, spacing = silver_width, start = 'LL', orientation = 'x')
         g.abs_move(0, 0)
-        g.move(z=g.layer_height*countZ)
-        g.nozzle_change('0')
-        g.move(z=-5) #Recompensate retraction from change_nozzle
+        g.move(z=g.layer_height)
+        g.write("M42 P32 S0")
+        nozzle_change('0')
         g.set_home(x=0, y=0)
-        countZ = countZ + 1
+#        countZ = countZ + 1
         
 
 silver_3D(layers = 10)
