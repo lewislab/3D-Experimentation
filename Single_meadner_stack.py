@@ -7,7 +7,7 @@ silver_width = 0.25
 total_x_width = 10
 orgin = (60, 50)
 extruder_offset = (62.95,1)
-FDM_feed = 15
+FDM_feed = 5
 silver_feed = 4
 
 
@@ -17,7 +17,7 @@ silver_feed = 4
 # Travis' Computer Outfile
 #outfile = r"C:\Users\tbusbee\Documents\GitHub\Muscular-Thin-Films\MTF_out-testing.txt"
 #outfile = r"C:\Users\Administrator\Documents\GitHub\LewisResearchGroup\FILE_NAME.gcode"
-outfile = r"Z:\jlewis\User Files\Chong\mecode\verticalTraceZchanged.gcode"
+outfile = r"Z:\jlewis\User Files\Chong\mecode\verticalTraceNozzle.gcode"
 
 
 
@@ -73,9 +73,9 @@ def calc_extrude_rate(x, y, extrude=True, relative = True, extrusion_width = 0.4
 
 def nozzle_change(nozzle):
     g.move(z=5)
-    print ('T' + str(nozzle))
     if nozzle == '0':
         g.move(*extruder_offset)
+    print ('T' + str(nozzle))
 
     if nozzle == '1':  
         g.move(-extruder_offset[0], -extruder_offset[1]) 
@@ -118,13 +118,15 @@ def silver_3D(layers):
         g.extrude = False
         g.move(z=1) #Retract
         g.abs_move(x=0, y=0)
-        nozzle_change('1')
+        g.nozzle_change('1')
+        g.move(z=-5) #Recompensate retraction from change_nozzle
         g.set_home(x=0, y=0)
         g.feed(silver_feed) #F
         g.meander(x=silver_length, y= silver_width, spacing = silver_width, start = 'LL', orientation = 'x')
         g.abs_move(0, 0)
         g.move(z=g.layer_height*countZ)
-        nozzle_change('0')
+        g.nozzle_change('0')
+        g.move(z=-5) #Recompensate retraction from change_nozzle
         g.set_home(x=0, y=0)
         countZ = countZ + 1
         
