@@ -26,8 +26,8 @@ cal_data = None#load_and_curate(calfile, reset_start=(2, -2))
 
 g = G(
     outfile=outfile,
-    header= r"C:\Users\Administrator\Documents\Academics\Internship and REU\Harvard\Coding\Vertical Trace\header.gcode",
-    footer= r"C:\Users\Administrator\Documents\Academics\Internship and REU\Harvard\Coding\Vertical Trace\footer.gcode",
+    header= r"Z:\jlewis\User Files\Chong\mecode\Vertical Trace\header.gcode",
+    footer= r"Z:\jlewis\User Files\Chong\mecode\Vertical Trace\footer.gcode",
     #cal_data=cal_data,
     print_lines=False,
     extrude = False,
