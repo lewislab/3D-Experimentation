@@ -21,7 +21,7 @@ total_count =0;
 #outfile = r"C:\Users\tbusbee\Documents\GitHub\Muscular-Thin-Films\MTF_out-testing.txt"
 #outfile = r"C:\Users\Administrator\Documents\GitHub\LewisResearchGroup\FILE_NAME.gcode"
 #outfile = r"C:\Users\lewislab\Desktop\3D_experiments\COREXYverticalPlastic.gcode"
-outfile = r"C:\Users\lewislab\Desktop\3D_experiments\Prusa\verticalDual.gcode"
+outfile = r"\\vfiler1.seas.harvard.edu\group0\jlewis\User Files\Chong\mecode\Vertical Trace\verticalDual.gcode"
 #outfile = r"C:\Users\lewislab\Desktop\3D_experiments\Calibration.gcode"
 
 simple_g_code = True
@@ -30,8 +30,8 @@ cal_data = None#load_and_curate(calfile, reset_start=(2, -2))
 
 g = G(
     outfile=outfile,
-    header= r"Z:\User Files\Chong\mecode\Vertical Trace\header.gcode",
-    footer= r"Z:\User Files\Chong\mecode\Vertical Trace\footer.gcode",
+    header= r"\\vfiler1.seas.harvard.edu\group0\jlewis\User Files\Chong\mecode\Vertical Trace\header.gcode",
+    footer= r"\\vfiler1.seas.harvard.edu\group0\jlewis\User Files\Chong\mecode\Vertical Trace\footer.gcode",
     #cal_data=cal_data,
     print_lines=False,
     aerotech_include = False, 
@@ -213,6 +213,6 @@ g.abs_move(z=g.layer_height)
 silver_3D(1)  
 
 
-g.view()
+#g.view()
                                             
 g.teardown()
