@@ -6,13 +6,11 @@ silver_length = 5
 silver_width = 0.25
 total_x_width = 15
 
-extruder_offset = (61.95,0.55)
-orgin = (60, 60)
+extruder_offset = (63.05,0)
+orgin = (90, 80)
 silver_orgin = (orgin[0]-extruder_offset[0], orgin[1]-extruder_offset[1])
-FDM_feed = 40*60
-silver_feed = 4*60
-retraction_feed = 20*60
-translation_speed = 90*60
+FDM_feed = 20#*60
+silver_feed = 4#*60
 total_count =0;
 
 
@@ -22,11 +20,11 @@ total_count =0;
 # Travis' Computer Outfile
 #outfile = r"C:\Users\tbusbee\Documents\GitHub\Muscular-Thin-Films\MTF_out-testing.txt"
 #outfile = r"C:\Users\Administrator\Documents\GitHub\LewisResearchGroup\FILE_NAME.gcode"
-#outfile = r"C:\Users\lewislab\Desktop\3D_experiments\COREXYverticalPlasticE1.12F20.gcode"
+#outfile = r"C:\Users\lewislab\Desktop\3D_experiments\COREXYverticalPlastic.gcode"
 outfile = r"C:\Users\lewislab\Desktop\3D_experiments\Prusa\verticalDual.gcode"
-#outfile = r"C:\Users\lewislab\Desktop\3D_experiments\Prusa\Calibration.gcode"
+#outfile = r"C:\Users\lewislab\Desktop\3D_experiments\Calibration.gcode"
 
-
+simple_g_code = True
 
 cal_data = None#load_and_curate(calfile, reset_start=(2, -2))
 
@@ -41,7 +39,7 @@ g = G(
     layer_height = 0.22, 
     extrusion_width = 0.4,
     filament_diameter = 1.75,
-    extrusion_multiplier = 1.33#1.33,
+    extrusion_multiplier = 1.00,
     )
 
 g.cal_data = None #np.array([[2, -2, 0], [70, -2, -10], [70, -48, -20], [2, -48, -10]])
@@ -76,27 +74,11 @@ def calc_extrude_rate(x, y, extrude=True, relative = True, extrusion_width = 0.4
     print filament_length
     print line_length
     print area
-        
-def set_feed(feed_rate):
-    g.write('M203 X{} Y{}'.format((feed_rate), (feed_rate)))
-    
-def nozzle_change(nozzle):
-    g.move(z=5) # rectraction for change of nozzle
-    g.write('T' + str(nozzle))
-    if nozzle == '0':
-        g.move(*extruder_offset)
-    if nozzle == '1':  
-        g.move(-extruder_offset[0], -extruder_offset[1]) 
-        g.write("END FDM G CODE")
-        g.write("M400")
-        g.write("M42 P32 S0; Pressure off")
-        g.write("G91")
-        g.write("SEPARATE HERE\n")
 
 def calibration_cube(layers, retraction, x=10, y=10):
     g.feed(40)
     g.abs_move(orgin[0], orgin[1])
-    g.abs_move(Z=g.layer_height)
+    g.abs_move(z=g.layer_height)
     for i in range(layers):
         if i%2 == 0:
             g.abs_move(orgin[0], orgin[1])
@@ -110,7 +92,7 @@ def calibration_cube(layers, retraction, x=10, y=10):
             g.meander(x=x, y=y, spacing = g.extrusion_width, start = 'LR', orientation = 'x')
         g.retract(retraction)
         g.extrude = False
-        g.move(Z=g.layer_height)
+        g.move(z=g.layer_height)
         if i%2 == 0:
             g.abs_move(orgin[0], orgin[1]+y)
         if i%2 == 1:
@@ -122,23 +104,41 @@ def calibration_cube(layers, retraction, x=10, y=10):
         if i%2 == 1:
             g.meander(x=x, y=y, spacing = g.extrusion_width, start = 'UR', orientation = 'y')
         g.retract(retraction)
-        g.move(Z=g.layer_height) 
+        g.move(z=g.layer_height) 
         g.extrude = False 
            
 
 def print_skirt(x, y):
-    start_x = orgin[0] - 5
-    start_y = orgin[1] - 5
-    g.abs_move(start_x, start_y)
-    g.abs_move(Z=g.layer_height)
-    g.extrude = True
-    g.move(y=y )
-    g.move(x=x)
-    g.move(y=-y)
-    g.move(x=-x)                                   
-    g.extrude = False
-  
-                                                                                                                                                                                                                      
+    if (not simple_g_code):
+        start_x = orgin[0] - 5
+        start_y = orgin[1] - 5
+        g.abs_move(start_x, start_y)
+        g.abs_move(z=g.layer_height)
+        g.extrude = True
+        g.move(y=y )
+        g.move(x=x)
+        g.move(y=-y)
+        g.move(x=-x)                                   
+        g.extrude = False
+    
+def set_feed(feed_rate):
+    if (not simple_g_code):
+        g.write('M203 X{} Y{}'.format((feed_rate), (feed_rate)))
+    
+def nozzle_change(nozzle):
+    if (not simple_g_code):
+        g.move(z=5) # rectraction for change of nozzle
+        g.write('T' + str(nozzle))
+        if nozzle == '0':
+            g.move(*extruder_offset)
+        if nozzle == '1':  
+            g.move(-extruder_offset[0], -extruder_offset[1]) 
+            g.write("; END FDM G CODE")
+            g.write("M400")
+            g.write("M42 P32 S0; Pressure off")
+            g.write("G91")
+            #g.write("G90")
+            
 def concentric_rectangle():
     extra = 0.5*silver_width + 0.5*g.extrusion_width
     Xo = silver_length + extra
@@ -153,46 +153,66 @@ def concentric_rectangle():
         g.move(y=-(Yo + g.extrusion_width*count))
         count = count + 1
         x_length = count*g.extrusion_width + Xo
-        
+
+def retract_fdm():
+    if (not simple_g_code):
+        g.feed(60)
+        g.retract(2)        
     
+def pressure_on():
+    g.write(" ; Turn pressure on")
+    g.write("M400") #finish all current moves
+    g.extrude = False
+    g.write("M42 P32 S255 ;Pressure On")
+    g.dwell(0.5) # dwell for a bit after pressure turned on
+        
 #calc_extrude_rate(x = 30, y = 30, extrude=True, relative = False, extrusion_width = 0.4, 
 #                    layer_height = 0.22, multiplier = 1, filament_diameter = 1.75)
-def silver_3D(layers, retraction):
+def silver_3D(layers):
     
+    dwell_time = 1
     
     for i in range(layers):
         set_feed(FDM_feed)
+        g.extrude = True      
         g.abs_move(orgin[0], orgin[1] - 0.5*silver_width - 0.5*g.extrusion_width)
         set_feed(FDM_feed)
+        g.move(z=-5)
+        g.dwell(dwell_time)
         g.extrude = True
-#        g.retract(-retraction)
+        g.dwell(dwell_time)
         concentric_rectangle() #2D rectangle
-        g.feed(retraction_feed)
-#        g.retract(retraction)
-        g.feed(FDM_feed)
+        retract_fdm()
         g.extrude = False
-        g.move(Z=5) 
+        g.dwell(dwell_time)
+        g.move(z=5)
+        g.dwell(dwell_time) 
+        set_feed(140) #speed up
         g.abs_move(orgin[0], orgin[1])
-        g.feed(translation_speed)
         nozzle_change('1')
-        g.move(Z =-5)
-        g.feed(silver_feed)
-        g.write("M42 P32 S255 ;Pressure On")
+        set_feed(silver_feed)
+        g.move(z =-5)
+        pressure_on()
         g.meander(x=silver_length, y= silver_width, spacing = silver_width, start = 'LL', orientation = 'x')
         g.write("M42 P32 S0")
-#        g.move(z=5)
+        g.move(z=5) 
+        g.dwell(dwell_time)
+        set_feed(140) #speed up
         g.abs_move(silver_orgin[0], silver_orgin[1])
-        g.feed(FDM_feed)
-        g.move(Z=g.layer_height)
+        set_feed(FDM_feed)
+        g.move(z=g.layer_height)
         nozzle_change('0')
-#        g.move(z=-5)
-        g.feed(translation_speed)
-#        g.retract(5)
+        g.dwell(dwell_time)
+        
 
-g.abs_move(g.layer_height)
-#g.feed(10) 
-#print_skirt(x=40, y=40)
-#calibration_cube(layers = 40, retraction = 5, x=10, y=10)
+
 #g.abs_move(orgin[0] - 0.5* (2*silver_width +(total_x_width - silver_length)), orgin[1] - 0.5*silver_width - 0.5*g.extrusion_width)
-silver_3D(30, retraction = 1.25)                        
+g.abs_move(z=g.layer_height)
+#dual_calibration()
+#g.move(z=5)
+silver_3D(1)  
+
+
+g.view()
+                                            
 g.teardown()
