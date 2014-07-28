@@ -207,7 +207,7 @@ def silver_3D(layers):
 
 
 #g.abs_move(orgin[0] - 0.5* (2*silver_width +(total_x_width - silver_length)), orgin[1] - 0.5*silver_width - 0.5*g.extrusion_width)
-g.abs_move(z=g.layer_height)
+g.abs_move(Z=g.layer_height)  #Z must be capitol lettering in order to work
 #dual_calibration()
 #g.move(z=5)
 silver_3D(1)  
