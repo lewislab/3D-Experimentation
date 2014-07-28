@@ -12,6 +12,7 @@ silver_orgin = (orgin[0]-extruder_offset[0], orgin[1]-extruder_offset[1])
 FDM_feed = 20#*60
 silver_feed = 4#*60
 total_count =0;
+dwell_time = 1
 
 
 # Robomama Outfile
@@ -29,11 +30,11 @@ simple_g_code = True
 cal_data = None#load_and_curate(calfile, reset_start=(2, -2))
 
 g = G(
-    outfile=outfile,
-    header= r"\\vfiler1.seas.harvard.edu\group0\jlewis\User Files\Chong\mecode\Vertical Trace\header.gcode",
-    footer= r"\\vfiler1.seas.harvard.edu\group0\jlewis\User Files\Chong\mecode\Vertical Trace\footer.gcode",
+    #outfile=outfile,
+    #header= r"\\vfiler1.seas.harvard.edu\group0\jlewis\User Files\Chong\mecode\Vertical Trace\header.gcode",
+    #footer= r"\\vfiler1.seas.harvard.edu\group0\jlewis\User Files\Chong\mecode\Vertical Trace\footer.gcode",
     #cal_data=cal_data,
-    print_lines=False,
+    print_lines=True,
     aerotech_include = False, 
     extrude = False,
     layer_height = 0.22, 
@@ -130,7 +131,7 @@ def nozzle_change(nozzle):
         g.move(z=5) # rectraction for change of nozzle
         g.write('T' + str(nozzle))
         if nozzle == '0':
-            g.move(*extruder_offset)
+            g.move(*extruder_offset) 
         if nozzle == '1':  
             g.move(-extruder_offset[0], -extruder_offset[1]) 
             g.write("; END FDM G CODE")
@@ -165,49 +166,53 @@ def pressure_on():
     g.extrude = False
     g.write("M42 P32 S255 ;Pressure On")
     g.dwell(0.5) # dwell for a bit after pressure turned on
+    
+def extrude_true():
+    g.dwell(dwell_time)
+    g.extrude = True
+    g.dwell(dwell_time)
+    dwell_time = 1
         
 #calc_extrude_rate(x = 30, y = 30, extrude=True, relative = False, extrusion_width = 0.4, 
 #                    layer_height = 0.22, multiplier = 1, filament_diameter = 1.75)
 def silver_3D(layers):
     
-    dwell_time = 1
     
     for i in range(layers):
         set_feed(FDM_feed)
-        g.extrude = True      
+        g.extrude = False      
         g.abs_move(orgin[0], orgin[1] - 0.5*silver_width - 0.5*g.extrusion_width)
         set_feed(FDM_feed)
-        g.move(z=-5)
-        g.dwell(dwell_time)
+        g.move(Z=-5)
         g.extrude = True
-        g.dwell(dwell_time)
         concentric_rectangle() #2D rectangle
         retract_fdm()
         g.extrude = False
         g.dwell(dwell_time)
-        g.move(z=5)
+        g.move(Z=5)
         g.dwell(dwell_time) 
-        set_feed(140) #speed up
+#        set_feed(140) #speed up
         g.abs_move(orgin[0], orgin[1])
         nozzle_change('1')
         set_feed(silver_feed)
-        g.move(z =-5)
+        g.move(Z =-5)
         pressure_on()
         g.meander(x=silver_length, y= silver_width, spacing = silver_width, start = 'LL', orientation = 'x')
         g.write("M42 P32 S0")
-        g.move(z=5) 
+        g.move(Z=5) 
         g.dwell(dwell_time)
-        set_feed(140) #speed up
+#        set_feed(140) #speed up
         g.abs_move(silver_orgin[0], silver_orgin[1])
         set_feed(FDM_feed)
-        g.move(z=g.layer_height)
+        g.move(Z=g.layer_height)
         nozzle_change('0')
         g.dwell(dwell_time)
         
 
 
 #g.abs_move(orgin[0] - 0.5* (2*silver_width +(total_x_width - silver_length)), orgin[1] - 0.5*silver_width - 0.5*g.extrusion_width)
-g.abs_move(Z=g.layer_height)  #Z must be capitol lettering in order to work
+g.abs_move(Z=g.layer_height)
+g.abs_move(Z=g.layer_height + 5)#Z must be capitol lettering in order to work
 #dual_calibration()
 #g.move(z=5)
 silver_3D(1)  
