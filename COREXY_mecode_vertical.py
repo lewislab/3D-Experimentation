@@ -26,14 +26,12 @@ travel_speed = 100
 outfile = r"\\vfiler1.seas.harvard.edu\group0\jlewis\User Files\Chong\mecode\Vertical Trace\verticalDual.gcode"
 #outfile = r"C:\Users\lewislab\Desktop\3D_experiments\Calibration.gcode"
 
-simple_g_code = True
-
 cal_data = None#load_and_curate(calfile, reset_start=(2, -2))
 
 g = G(
-    #outfile=outfile,
-    #header= r"\\vfiler1.seas.harvard.edu\group0\jlewis\User Files\Chong\mecode\Vertical Trace\header.gcode",
-    #footer= r"\\vfiler1.seas.harvard.edu\group0\jlewis\User Files\Chong\mecode\Vertical Trace\footer.gcode",
+    outfile=outfile,
+    header= r"\\vfiler1.seas.harvard.edu\group0\jlewis\User Files\Chong\mecode\Vertical Trace\header.gcode",
+    footer= r"\\vfiler1.seas.harvard.edu\group0\jlewis\User Files\Chong\mecode\Vertical Trace\footer.gcode",
     #cal_data=cal_data,
     print_lines=True,
     aerotech_include = False, 
@@ -111,7 +109,6 @@ def calibration_cube(layers, retraction, x=10, y=10):
            
 
 def print_skirt(x, y):
-    if (not simple_g_code):
         start_x = orgin[0] - 5
         start_y = orgin[1] - 5
         g.abs_move(start_x, start_y)
@@ -124,11 +121,10 @@ def print_skirt(x, y):
         g.extrude = False
     
 def set_feed(feed_rate):
-    if (not simple_g_code):
         g.write('M203 X{} Y{}'.format((feed_rate), (feed_rate)))
     
 def nozzle_change(nozzle):
-    if (not simple_g_code):
+        g.write(" ; Change Extruder")
         g.move(z=5) # rectraction for change of nozzle
         g.write('T' + str(nozzle))
         if nozzle == '0':
@@ -159,9 +155,8 @@ def concentric_rectangle():
         x_length = count*g.extrusion_width + Xo
 
 def retract_fdm():
-    if (not simple_g_code):
-        g.feed(60)
-        g.retract(2)        
+    g.feed(60)
+    g.retract(2)           
     
 def pressure_on():
     g.write(" ; Turn pressure on")
@@ -171,7 +166,7 @@ def pressure_on():
     g.dwell(0.5) # dwell for a bit after pressure turned on
 
 def pressure_off():
-    g.write("; Turn pressure off")
+    g.write(" ; Turn pressure off")
     g.write("M400")
     g.write("M42 P32 S0")
     g.dwell(0.5)
@@ -183,11 +178,6 @@ def extrude_true():
 def extrude_false():
     g.dwell(dwell_time)
     g.extrude = False
-
-def change_nozzle(number):
-    g.move(Z = 5)
-    nozzle_change('number')
-    g.move(Z=-5)
 
 def travel_mode(x,y):
     g.move(Z=5)
@@ -205,24 +195,28 @@ def silver_3D(layers):
         extrude_false()   # Make sure extrude is false
         travel_mode(orgin[0], orgin[1] - 0.5*silver_width - 0.5*g.extrusion_width) # Move to print area
         
-        # FDM Extrusion
+        # FDM Extrusion\
+        g.write(" ")
+        g.write(" ; FDM Print")
         set_feed(FDM_feed) # Set feed rate for FDM print
-        #g.move(Z=-5) # drop extruder 
+        #g.move(Z=-5) # back to previous height 
         extrude_true() # Extrude calculation
         concentric_rectangle() #2D rectangle
         retract_fdm() # retract
-        extrude_false() # Make sure it's not extruding
+        extrude_false() # Make sure it's not performing extrusion calculation
         
         # Ink extrusion
-        g.travel_mode(orgin[0], orgin[1]) #move to initial print area
+        travel_mode(orgin[0], orgin[1]) #move to initial print area
         nozzle_change('1') # change to ink extruder
-        g.move(Z =-5) # recompensate height from nozzle_change
+       # g.move(Z =-5) # recompensate height from nozzle_change
+        g.write(" ")
+        g.write(" ; Print Ink")
         pressure_on()
         g.meander(x=silver_length, y= silver_width, spacing = silver_width, start = 'LL', orientation = 'x')
         pressure_off()
         travel_mode(silver_orgin[0], silver_orgin[1])
         set_feed(FDM_feed)
-        g.move(Z=g.layer_height)
+        g.move(Z=g.layer_height) # check, why not add a counter for iteration
         
         # Back to FDM Extrusion, preparing for next layer    
         nozzle_change('0')
@@ -231,8 +225,8 @@ def silver_3D(layers):
 
 
 #g.abs_move(orgin[0] - 0.5* (2*silver_width +(total_x_width - silver_length)), orgin[1] - 0.5*silver_width - 0.5*g.extrusion_width)
+g.write("M400")
 g.abs_move(Z=g.layer_height)
-g.abs_move(Z=g.layer_height + 5)#Z must be capitol lettering in order to work
 #dual_calibration()
 #g.move(z=5)
 silver_3D(5)  
