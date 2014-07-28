@@ -13,6 +13,7 @@ FDM_feed = 20#*60
 silver_feed = 4#*60
 total_count =0;
 dwell_time = 1
+travel_speed = 100
 
 
 # Robomama Outfile
@@ -132,12 +133,14 @@ def nozzle_change(nozzle):
         g.write('T' + str(nozzle))
         if nozzle == '0':
             g.move(*extruder_offset) 
+            set_feed(FDM_feed)
         if nozzle == '1':  
             g.move(-extruder_offset[0], -extruder_offset[1]) 
             g.write("; END FDM G CODE")
             g.write("M400")
             g.write("M42 P32 S0; Pressure off")
             g.write("G91")
+            set_feed(silver_feed)
             #g.write("G90")
             
 def concentric_rectangle():
@@ -166,12 +169,30 @@ def pressure_on():
     g.extrude = False
     g.write("M42 P32 S255 ;Pressure On")
     g.dwell(0.5) # dwell for a bit after pressure turned on
-    
+
+def pressure_off():
+    g.write("; Turn pressure off")
+    g.write("M400")
+    g.write("M42 P32 S0")
+    g.dwell(0.5)
+
 def extrude_true():
     g.dwell(dwell_time)
     g.extrude = True
+    
+def extrude_false():
     g.dwell(dwell_time)
-    dwell_time = 1
+    g.extrude = False
+
+def change_nozzle(number):
+    g.move(Z = 5)
+    nozzle_change('number')
+    g.move(Z=-5)
+
+def travel_mode(x,y):
+    g.move(Z=5)
+    g.abs_move(x,y)
+    g.move(Z=-5)
         
 #calc_extrude_rate(x = 30, y = 30, extrude=True, relative = False, extrusion_width = 0.4, 
 #                    layer_height = 0.22, multiplier = 1, filament_diameter = 1.75)
@@ -179,32 +200,31 @@ def silver_3D(layers):
     
     
     for i in range(layers):
-        set_feed(FDM_feed)
-        g.extrude = False      
-        g.abs_move(orgin[0], orgin[1] - 0.5*silver_width - 0.5*g.extrusion_width)
-        set_feed(FDM_feed)
-        g.move(Z=-5)
-        g.extrude = True
+        # TRAVEL TO PRINT AREA
+        set_feed(FDM_feed) # Set feed rate for FDM print
+        extrude_false()   # Make sure extrude is false
+        travel_mode(orgin[0], orgin[1] - 0.5*silver_width - 0.5*g.extrusion_width) # Move to print area
+        
+        # FDM Extrusion
+        set_feed(FDM_feed) # Set feed rate for FDM print
+        #g.move(Z=-5) # drop extruder 
+        extrude_true() # Extrude calculation
         concentric_rectangle() #2D rectangle
-        retract_fdm()
-        g.extrude = False
-        g.dwell(dwell_time)
-        g.move(Z=5)
-        g.dwell(dwell_time) 
-#        set_feed(140) #speed up
-        g.abs_move(orgin[0], orgin[1])
-        nozzle_change('1')
-        set_feed(silver_feed)
-        g.move(Z =-5)
+        retract_fdm() # retract
+        extrude_false() # Make sure it's not extruding
+        
+        # Ink extrusion
+        g.travel_mode(orgin[0], orgin[1]) #move to initial print area
+        nozzle_change('1') # change to ink extruder
+        g.move(Z =-5) # recompensate height from nozzle_change
         pressure_on()
         g.meander(x=silver_length, y= silver_width, spacing = silver_width, start = 'LL', orientation = 'x')
-        g.write("M42 P32 S0")
-        g.move(Z=5) 
-        g.dwell(dwell_time)
-#        set_feed(140) #speed up
-        g.abs_move(silver_orgin[0], silver_orgin[1])
+        pressure_off()
+        travel_mode(silver_orgin[0], silver_orgin[1])
         set_feed(FDM_feed)
         g.move(Z=g.layer_height)
+        
+        # Back to FDM Extrusion, preparing for next layer    
         nozzle_change('0')
         g.dwell(dwell_time)
         
@@ -215,7 +235,7 @@ g.abs_move(Z=g.layer_height)
 g.abs_move(Z=g.layer_height + 5)#Z must be capitol lettering in order to work
 #dual_calibration()
 #g.move(z=5)
-silver_3D(1)  
+silver_3D(5)  
 
 
 #g.view()
