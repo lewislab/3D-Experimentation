@@ -7,13 +7,15 @@ silver_width = 0.25
 total_x_width = 15
 
 extruder_offset = (63.05,0)
-orgin = (90, 80)
+orgin = (60, 60)
 silver_orgin = (orgin[0]-extruder_offset[0], orgin[1]-extruder_offset[1])
-FDM_feed = 20#*60
-silver_feed = 4#*60
+FDM_feed = 15*60
+silver_feed = 4*60
 total_count =0;
 dwell_time = 1
-travel_speed = 100
+travel_speed = 2000
+retraction = 1.5
+opposite_retraction = -1.0
 
 
 # Robomama Outfile
@@ -39,7 +41,7 @@ g = G(
     layer_height = 0.22, 
     extrusion_width = 0.4,
     filament_diameter = 1.75,
-    extrusion_multiplier = 1.00,
+    extrusion_multiplier = 1.05,
     )
 
 g.cal_data = None #np.array([[2, -2, 0], [70, -2, -10], [70, -48, -20], [2, -48, -10]])
@@ -160,8 +162,8 @@ def retract_fdm():
     
 def pressure_on():
     g.write(" ; Turn pressure on")
+    g.feed(silver_feed)
     g.write("M400") #finish all current moves
-    g.extrude = False
     g.write("M42 P32 S255 ;Pressure On")
     g.dwell(0.5) # dwell for a bit after pressure turned on
 
@@ -179,10 +181,13 @@ def extrude_false():
     g.dwell(dwell_time)
     g.extrude = False
 
-def travel_mode(x,y):
+def travel_init(x,y):
+    g.feed(travel_speed)
+    g.retract(retraction)
     g.move(Z=5)
     g.abs_move(x,y)
     g.move(Z=-5)
+    g.retract(opposite_retraction)
         
 #calc_extrude_rate(x = 30, y = 30, extrude=True, relative = False, extrusion_width = 0.4, 
 #                    layer_height = 0.22, multiplier = 1, filament_diameter = 1.75)
@@ -193,34 +198,41 @@ def silver_3D(layers):
         # TRAVEL TO PRINT AREA
         set_feed(FDM_feed) # Set feed rate for FDM print
         extrude_false()   # Make sure extrude is false
-        travel_mode(orgin[0], orgin[1] - 0.5*silver_width - 0.5*g.extrusion_width) # Move to print area
+        travel_init(orgin[0], orgin[1] - 0.5*silver_width - 0.5*g.extrusion_width) # Move to print area
         
-        # FDM Extrusion\
+        # FDM Extrusion
         g.write(" ")
         g.write(" ; FDM Print")
-        set_feed(FDM_feed) # Set feed rate for FDM print
-        #g.move(Z=-5) # back to previous height 
+        g.feed(FDM_feed) # Set feed rate for FDM print
+        g.move(Z=-5) # back to previous height 
         extrude_true() # Extrude calculation
         concentric_rectangle() #2D rectangle
-        retract_fdm() # retract
         extrude_false() # Make sure it's not performing extrusion calculation
+        retract_fdm()
+        
         
         # Ink extrusion
-        travel_mode(orgin[0], orgin[1]) #move to initial print area
-        nozzle_change('1') # change to ink extruder
-       # g.move(Z =-5) # recompensate height from nozzle_change
-        g.write(" ")
-        g.write(" ; Print Ink")
-        pressure_on()
-        g.meander(x=silver_length, y= silver_width, spacing = silver_width, start = 'LL', orientation = 'x')
-        pressure_off()
-        travel_mode(silver_orgin[0], silver_orgin[1])
-        set_feed(FDM_feed)
-        g.move(Z=g.layer_height) # check, why not add a counter for iteration
+#        g.feed(silver_feed)
+##        retract_fdm() # retract
+#        g.retract(5)
+#        travel_init(orgin[0], orgin[1]) #move to initial print area
+#        nozzle_change('1') # change to ink extruder
+#       # g.move(Z =-5) # recompensate height from nozzle_change
+#        g.write(" ")
+#        g.write(" ; Print Ink")
+#        pressure_on()
+#        g.meander(x=silver_length, y= silver_width, spacing = silver_width, start = 'LL', orientation = 'x')
+#        pressure_off()
+#        g.move(Z = 5) # problem, there is an 
+#        g.abs_move(silver_orgin[0], silver_orgin[1])
+#        g.move(Z = -5)
+ #       set_feed(FDM_feed)
         
-        # Back to FDM Extrusion, preparing for next layer    
-        nozzle_change('0')
-        g.dwell(dwell_time)
+        # Back to FDM Extrusion, preparing for next layer   
+        g.write(" ; next layer")
+        g.move(Z=g.layer_height) #move to next layer
+#        nozzle_change('0')
+#        g.dwell(dwell_time)
         
 
 
