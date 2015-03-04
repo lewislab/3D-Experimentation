@@ -31,20 +31,19 @@ outfile = r"C:\Users\lewislab\Desktop\3D_experiments\Prusa\verticalDual.gcode"
 cal_data = None#load_and_curate(calfile, reset_start=(2, -2))
 
 g = G(
-    outfile=outfile,
-    header= r"Z:\User Files\Chong\mecode\Vertical Trace\header.gcode",
-    footer= r"Z:\User Files\Chong\mecode\Vertical Trace\footer.gcode",
+    #outfile=outfile,
+    #header= r"Z:\User Files\Chong\mecode\Vertical Trace\header.gcode",
+    #footer= r"Z:\User Files\Chong\mecode\Vertical Trace\footer.gcode",
     #cal_data=cal_data,
-    print_lines=False,
+    print_lines=True,
     aerotech_include = False, 
     extrude = False,
     layer_height = 0.22, 
     extrusion_width = 0.4,
     filament_diameter = 1.75,
-    extrusion_multiplier = 1.33#1.33,
+    extrusion_multiplier = 1#1.33,
     )
 
-g.cal_data = None #np.array([[2, -2, 0], [70, -2, -10], [70, -48, -20], [2, -48, -10]])
 
 
 def calc_extrude_rate(x, y, extrude=True, relative = True, extrusion_width = 0.4, 
@@ -189,10 +188,10 @@ def silver_3D(layers, retraction):
         g.feed(translation_speed)
 #        g.retract(5)
 
-g.abs_move(g.layer_height)
+#g.abs_move(g.layer_height)
 #g.feed(10) 
 #print_skirt(x=40, y=40)
 #calibration_cube(layers = 40, retraction = 5, x=10, y=10)
 #g.abs_move(orgin[0] - 0.5* (2*silver_width +(total_x_width - silver_length)), orgin[1] - 0.5*silver_width - 0.5*g.extrusion_width)
-silver_3D(30, retraction = 1.25)                        
-g.teardown()
+#silver_3D(30, retraction = 1.25)                        
+#g.teardown()
