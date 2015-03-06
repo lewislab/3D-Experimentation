@@ -139,7 +139,45 @@ def fin(extrusion_width, layer_height=0.15,num_layers=1, start_x=top_left[0],sta
     g.extrude = False
     retract()
 
-
+def fins(extrusion_width, num_fins, fin_spacing, layer_height=0.15,num_layers=1, start_x=top_left[0],start_y=top_left[1], start_z = 0.15):
+    
+    if num_layers==0:
+        num_layers = int(fin_height/layer_height)-1
+    
+    g.extrude = False
+    set_speed(travel_speed)
+    g.abs_move(start_x+0.5*extrusion_width, start_y-(0.5*extrusion_width))
+    g.abs_move(Z=start_z)
+    unretract()
+    for i in range(num_layers):
+        current_width = bottom_width - extrusion_width - width_change_per_layer*(i)
+        current_length = bottom_length -extrusion_width - length_change_per_layer*i
+        num_widths = current_width/extrusion_width
+        int_widths = int(num_widths)
+        if int_widths%2!=0:
+            int_widths = int_widths-1
+        #starting_point = [(0,0)]
+        for r in range(num_fins):
+            starting_point = (start_x+0.5*extrusion_width+fin_spacing*r+((width_change_per_layer/2)*i), start_y-(0.5*extrusion_width)-((length_change_per_layer/2)*i))
+            current_z = start_z + 0.05 + layer_height*i
+            g.abs_move(Z=current_z)
+            g.abs_move(starting_point[0], starting_point[1])
+            unretract()
+            
+            #print "int widths: {}".format(int_widths)
+            
+            for j in range(int_widths/2):                        
+                g.extrude = True
+                g.extrusion_width = 0.35
+                g.layer_height = 0.15
+                set_speed(FDM_feed)
+                g.move(x=current_width-2*j*extrusion_width, y=0, Z=0)
+                g.move(y=-(current_length-2*j*extrusion_width), Z=0)
+                g.move(x=-(current_width-2*j*extrusion_width),  Z=0)
+                g.move(y=current_length-0.5*extrusion_width-2*j*extrusion_width,  Z=0)
+                g.move(x=extrusion_width, y=-0.5*extrusion_width,  Z=0)
+            g.extrude = False
+            retract()
         
 def silver_upwards_meander(cross_beam_layers, bottom_layer_start, Ag_bottom_length, Ag_top_length, meander_space, layer_height, num_layers, offset, Ag_feed, width_change_per_layer = 0.04375, side = 'left', Ag_start_x = top_left[0] , Ag_start_y = top_left[1], Ag_start_z = 0.15):
     if side == 'left':
@@ -204,8 +242,10 @@ def heat_sink(num_fins, length_fins, fin_space, fin_height, bottom_layer_start =
         for f in range(num_fins):
             fin(extrusion_width, layer_height=layer_height, num_layers = 1, start_x = top_left[0]+fin_space*f, start_y = top_left[1], start_z=bottom_layer_start+layer_height*j)
     g.write(';start fins\n')
-    for k in range(num_fins):
-        fin(extrusion_width, layer_height=layer_height, num_layers = 0, start_x = top_left[0]+fin_space*k, start_y = top_left[1], start_z=bottom_layer_start+layer_height*(cross_beam_layers -1))
+    fins(extrusion_width, num_fins, fin_spacing, layer_height=layer_height, num_layers = 0, start_x = top_left[0], start_y = top_left[1], start_z=bottom_layer_start+layer_height*(cross_beam_layers -1))
+    
+    #for k in range(num_fins):
+    #    fin(extrusion_width, layer_height=layer_height, num_layers = 0, start_x = top_left[0]+fin_space*k, start_y = top_left[1], start_z=bottom_layer_start+layer_height*(cross_beam_layers -1))
     for l in range(num_fins):
         silver_upwards_meander(cross_beam_layers, bottom_layer_start,Ag_bottom_length = top_length, Ag_top_length=top_length, meander_space=0.28, layer_height=layer_height, num_layers = 0, offset=0.1, Ag_feed=15, width_change_per_layer = 0.04375
             , side = 'left',Ag_start_x = top_left[0]+fin_space*l , Ag_start_y = top_left[1], Ag_start_z = 0.25)
