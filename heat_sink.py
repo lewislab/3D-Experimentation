@@ -11,9 +11,11 @@ width_change = 1
 top_left = (96,70)
 bottom_length = 10
 top_length = 8
-bottom_width = 0.35*8
+bottom_width = 0.35*6
 top_width = 0.7
 fin_height = 0.15*33
+fin_spacing = 4
+cross_beam_offset = 1.5
 extrusion_width = 0.35
 silver_width = 0.25
 layer_height = 0.15
@@ -22,9 +24,10 @@ layer_height = 0.15
 # Robomama Outfile
 #outfile = r"C:\Users\Lewis Group\Documents\GitHub\Muscular-Thin-Films\MTF_out-new.pgm"
 
-# Travis' Computer Outfile
-outfile = r"C:\Users\Voxel8\Documents\GitHub\3D-Experimentation\gcode.gcode"
-#outfile = r"C:\Users\Administrator\Documents\GitHub\LewisResearchGroup\FILE_NAME.gcode"
+# LeroyComputer Outfile
+#outfile = r"C:\Users\Voxel8\Documents\GitHub\3D-Experimentation\gcode.gcode"
+#Greentown Trav Comp
+outfile = r"C:\Users\Workstation 1\Documents\GitHub\3D-Experimentation\gcode.gcode"
 #outfile = r"C:\Users\lewislab\Desktop\3D_experiments\COREXYverticalPlasticE1.12F20.gcode"
 #outfile = r"C:\Users\lewislab\Desktop\3D_experiments\Prusa\verticalDual.gcode"
 #outfile = r"C:\Users\lewislab\Desktop\3D_experiments\Prusa\Calibration.gcode"
@@ -95,13 +98,20 @@ theta2_degrees = (theta2/np.pi)*180
 length_change_per_layer = (layer_height/np.tan(theta1))*2
 width_change_per_layer = (layer_height/np.tan(theta2))*2
 #print "width_change_per_layer: {}".format(width_change_per_layer)
-layers = int(fin_height/layer_height)-1
+layers = 1#int(fin_height/layer_height)-1
 #print "layers: {}".format(layers)                                           
                                                                                                                         
-def fin(layers, extrusion_width, layer_height=0.15):
+def fin(extrusion_width, layer_height=0.15,num_layers=1, start_x=top_left[0],start_y=top_left[1], start_z = 0.15):
+    
+    if num_layers==0:
+        num_layers = int(fin_height/layer_height)-1
+    
     g.extrude = False
     set_speed(travel_speed)
-    for i in range(layers):
+    g.abs_move(start_x+0.5*extrusion_width, start_y-(0.5*extrusion_width))
+    g.abs_move(Z=start_z)
+    unretract()
+    for i in range(num_layers):
         current_width = bottom_width - extrusion_width - width_change_per_layer*(i)
         current_length = bottom_length -extrusion_width - length_change_per_layer*i
         num_widths = current_width/extrusion_width
@@ -109,26 +119,47 @@ def fin(layers, extrusion_width, layer_height=0.15):
         if int_widths%2!=0:
             int_widths = int_widths-1
         #starting_point = [(0,0)]
-        starting_point = (top_left[0]+0.5*extrusion_width+((width_change_per_layer/2)*i), top_left[1]-(0.5*extrusion_width)-((length_change_per_layer/2)*i))
-        current_z = layer_height + 0.05 + layer_height*i
+        starting_point = (start_x+0.5*extrusion_width+((width_change_per_layer/2)*i), start_y-(0.5*extrusion_width)-((length_change_per_layer/2)*i))
+        current_z = start_z + 0.05 + layer_height*i
         g.abs_move(starting_point[0], starting_point[1])
         g.abs_move(Z=current_z)
         print "int widths: {}".format(int_widths)
+        
         for j in range(int_widths/2):
                       
             g.extrude = True
             g.extrusion_width = 0.35
             g.layer_height = 0.15
-            unretract()
             set_speed(FDM_feed)
-            g.move(x=current_width-2*j*extrusion_width, y=0)
-            g.move(y=-(current_length-2*j*extrusion_width))
-            g.move(x=-(current_width-2*j*extrusion_width))
-            g.move(y=current_length-0.5*extrusion_width-2*j*extrusion_width)
-            g.move(x=extrusion_width, y=-0.5*extrusion_width)
+            g.move(x=current_width-2*j*extrusion_width, y=0, Z=0)
+            g.move(y=-(current_length-2*j*extrusion_width), Z=0)
+            g.move(x=-(current_width-2*j*extrusion_width),  Z=0)
+            g.move(y=current_length-0.5*extrusion_width-2*j*extrusion_width,  Z=0)
+            g.move(x=extrusion_width, y=-0.5*extrusion_width,  Z=0)
     g.extrude = False
     retract()
+
+def heat_sink(num_fins, length_fins, fin_space, fin_height, bottom_layer_start = 0.18, cross_beam_layers = 2):
+    cross_beam_length = cross_beam_offset*2+(num_fins-1)*fin_space + bottom_width
+    for j in range(cross_beam_layers):
+        g.abs_move((top_left[0]+0.5*extrusion_width-cross_beam_offset), top_left[1]-0.5*extrusion_width)
+        g.abs_move(Z=bottom_layer_start+layer_height*j)
+        g.extrude = True
+        g.move(x=cross_beam_length)
+        g.move(y=-(bottom_length-extrusion_width))
+        g.move(x=-cross_beam_length)
+        g.move(y=(bottom_length-extrusion_width))
+        retract()
+        g.extrude =False
+        for f in range(num_fins):
+            fin(extrusion_width, layer_height=layer_height, num_layers = 1, start_x = top_left[0]+fin_space*f, start_y = top_left[1], start_z=bottom_layer_start+layer_height*j)
+    g.write(';start fins\n')
+    for k in range(num_fins):
+        fin(extrusion_width, layer_height=layer_height, num_layers = 0, start_x = top_left[0]+fin_space*k, start_y = top_left[1], start_z=bottom_layer_start+layer_height*(cross_beam_layers -1))
+    for l in range(num_fins):
         
+    
+            
         
         
 def silver_upwards_meander(Ag_bottom_length, Ag_top_length, meander_space, layer_height, offset, Ag_feed, width_change_per_layer = 0.04375, side = 'left'):
@@ -191,19 +222,20 @@ setup()
 skirt()
 unretract()
 g.write('M106\n')
-fin(layers, extrusion_width, layer_height=0.15)
-g.extrude = False
-g.abs_move(60, 130)
-g.write('G4 S12\n')
-activate_T1()
-
-silver_upwards_meander(Ag_bottom_length = top_length, Ag_top_length=top_length, meander_space=0.28, layer_height=layer_height, offset=0.1, Ag_feed=15, width_change_per_layer = 0.065625
-, side = 'left')
-set_speed(travel_speed)
-g.move(y=4)
-g.move(Z=10)
-silver_upwards_meander(Ag_bottom_length = top_length, Ag_top_length=top_length, meander_space=0.28, layer_height=layer_height, offset=0.1, Ag_feed=15, width_change_per_layer = 0.065625
-, side = 'right')
-silver_top()
+heat_sink(num_fins = 3, length_fins = bottom_length, fin_space = 5, fin_height = 5, bottom_layer_start = 0.18)
+#fin(layers, extrusion_width, layer_height=0.15, startx = top_left[0], start_y=top_left[1], start_z=0.15)
+#g.extrude = False
+#g.abs_move(60, 130)
+#g.write('G4 S12\n')
+#activate_T1()
+#
+#silver_upwards_meander(Ag_bottom_length = top_length, Ag_top_length=top_length, meander_space=0.28, layer_height=layer_height, offset=0.1, Ag_feed=15, width_change_per_layer = 0.065625
+#, side = 'left')
+#set_speed(travel_speed)
+#g.move(y=4)
+#g.move(Z=10)
+#silver_upwards_meander(Ag_bottom_length = top_length, Ag_top_length=top_length, meander_space=0.28, layer_height=layer_height, offset=0.1, Ag_feed=15, width_change_per_layer = 0.065625
+#, side = 'right')
+#silver_top()
 postamble()                                        
 g.teardown()
