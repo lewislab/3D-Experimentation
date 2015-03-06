@@ -97,7 +97,7 @@ theta2_degrees = (theta2/np.pi)*180
 #print "theta2: {}".format(theta2_degrees)
 length_change_per_layer = (layer_height/np.tan(theta1))*2
 width_change_per_layer = (layer_height/np.tan(theta2))*2
-#print "width_change_per_layer: {}".format(width_change_per_layer)
+print "width_change_per_layer: {}".format(width_change_per_layer)
 layers = 1#int(fin_height/layer_height)-1
 #print "layers: {}".format(layers)                                           
                                                                                                                         
@@ -123,7 +123,7 @@ def fin(extrusion_width, layer_height=0.15,num_layers=1, start_x=top_left[0],sta
         current_z = start_z + 0.05 + layer_height*i
         g.abs_move(starting_point[0], starting_point[1])
         g.abs_move(Z=current_z)
-        print "int widths: {}".format(int_widths)
+        #print "int widths: {}".format(int_widths)
         
         for j in range(int_widths/2):
                       
@@ -138,6 +138,56 @@ def fin(extrusion_width, layer_height=0.15,num_layers=1, start_x=top_left[0],sta
             g.move(x=extrusion_width, y=-0.5*extrusion_width,  Z=0)
     g.extrude = False
     retract()
+
+
+        
+def silver_upwards_meander(cross_beam_layers, bottom_layer_start, Ag_bottom_length, Ag_top_length, meander_space, layer_height, num_layers, offset, Ag_feed, width_change_per_layer = 0.04375, side = 'left', Ag_start_x = top_left[0] , Ag_start_y = top_left[1], Ag_start_z = 0.15):
+    if side == 'left':
+        starting_point = ((Ag_start_x- 0.5*silver_width - offset), (Ag_start_y- ((bottom_length-Ag_bottom_length)/2)))
+        direction = 1
+    else:
+        starting_point = ((Ag_start_x+ 0.5*silver_width + offset+bottom_width), (Ag_start_y- ((bottom_length-Ag_bottom_length)/2)))#fix this
+        direction = -1
+    if num_layers==0:
+        num_layers = int((fin_height+(cross_beam_layers-1)*layer_height+bottom_layer_start)/layer_height)-1
+    g.extrude = False
+    g.abs_move(starting_point[0], starting_point[1])
+    set_speed(silver_feed)
+    
+    for i in range(num_layers):
+        current_z = layer_height + layer_height*i
+        current_length = Ag_bottom_length
+        layer_starting_point = ((starting_point[0] + direction*(width_change_per_layer/2)*i), (starting_point[1]))
+        g.abs_move(x=layer_starting_point[0], y= layer_starting_point[1], Z=current_z)
+        pressure_on()
+        g.move(y=-current_length)
+        g.move(x=-1*direction*meander_space)
+        g.move(y=current_length)
+        g.move(x=direction*meander_space)
+    print g.current_position
+    pressure_off()
+    if side!= 'left':
+        g.move(x=meander_space, Z=layer_height)
+        pressure_on()
+        g.meander(x=2, y=8.35, spacing = 0.3, start = 'UR',   orientation = 'x') 
+        g.move(z=0.15)
+        g.meander(x=2, y=8.35, spacing = 0.3, start = 'LL',   orientation = 'y') 
+        pressure_off()
+        set_speed(travel_speed)
+        g.move(y=12)
+        pressure_off()
+        g.move(y=5, Z=5)
+
+def silver_top():
+    g.abs_move(x=98.637) 
+    g.move(z=0.15)
+    pressure_on()
+    g.meander(x=2.1256, y=8.35, spacing = 0.3, start = 'UR',   orientation = 'x') 
+    g.move(z=0.15)
+    g.meander(x=2.1256, y=8.35, spacing = 0.3, start = 'LL',   orientation = 'y') 
+    pressure_off()
+    set_speed(travel_speed)
+    g.move(y=12)
 
 def heat_sink(num_fins, length_fins, fin_space, fin_height, bottom_layer_start = 0.18, cross_beam_layers = 2):
     cross_beam_length = cross_beam_offset*2+(num_fins-1)*fin_space + bottom_width
@@ -157,45 +207,17 @@ def heat_sink(num_fins, length_fins, fin_space, fin_height, bottom_layer_start =
     for k in range(num_fins):
         fin(extrusion_width, layer_height=layer_height, num_layers = 0, start_x = top_left[0]+fin_space*k, start_y = top_left[1], start_z=bottom_layer_start+layer_height*(cross_beam_layers -1))
     for l in range(num_fins):
-        
+        silver_upwards_meander(cross_beam_layers, bottom_layer_start,Ag_bottom_length = top_length, Ag_top_length=top_length, meander_space=0.28, layer_height=layer_height, num_layers = 0, offset=0.1, Ag_feed=15, width_change_per_layer = 0.04375
+            , side = 'left',Ag_start_x = top_left[0]+fin_space*l , Ag_start_y = top_left[1], Ag_start_z = 0.25)
+        set_speed(travel_speed)
+        g.move(y=4)
+        g.move(Z=10)
+        silver_upwards_meander(cross_beam_layers, bottom_layer_start, Ag_bottom_length = top_length, Ag_top_length=top_length, meander_space=0.28, layer_height=layer_height, num_layers = 0, offset=0.1, Ag_feed=15, width_change_per_layer = 0.04375
+        , side = 'right',Ag_start_x = top_left[0]+fin_space*l , Ag_start_y = top_left[1], Ag_start_z = 0.25)
     
             
         
-        
-def silver_upwards_meander(Ag_bottom_length, Ag_top_length, meander_space, layer_height, offset, Ag_feed, width_change_per_layer = 0.04375, side = 'left'):
-    if side == 'left':
-        starting_point = ((top_left[0]- 0.5*silver_width - offset), (top_left[1]- ((bottom_length-Ag_bottom_length)/2)))
-        direction = 1
-    else:
-        starting_point = ((top_left[0]+ 0.5*silver_width + offset+bottom_width), (top_left[1]- ((bottom_length-Ag_bottom_length)/2)))#fix this
-        direction = -1
-    g.extrude = False
-    g.abs_move(starting_point[0], starting_point[1])
-    set_speed(silver_feed)
-    
-    for i in range(layers):
-        current_z = layer_height + layer_height*i
-        current_length = Ag_bottom_length
-        layer_starting_point = ((starting_point[0] + direction*(width_change_per_layer/2)*i), (starting_point[1]))
-        g.abs_move(x=layer_starting_point[0], y= layer_starting_point[1], Z=current_z)
-        pressure_on()
-        g.move(y=-current_length)
-        g.move(x=-1*direction*meander_space)
-        g.move(y=current_length)
-        g.move(x=direction*meander_space)
-    print g.current_position
-    pressure_off()
 
-def silver_top():
-    g.abs_move(x=98.637) 
-    g.move(z=0.15)
-    pressure_on()
-    g.meander(x=2.1256, y=8.35, spacing = 0.3, start = 'UR',   orientation = 'x') 
-    g.move(z=0.15)
-    g.meander(x=2.1256, y=8.35, spacing = 0.3, start = 'LL',   orientation = 'y') 
-    pressure_off()
-    set_speed(travel_speed)
-    g.move(y=12)
             
 def skirt():
     set_speed(50)
@@ -222,7 +244,7 @@ setup()
 skirt()
 unretract()
 g.write('M106\n')
-heat_sink(num_fins = 3, length_fins = bottom_length, fin_space = 5, fin_height = 5, bottom_layer_start = 0.18)
+heat_sink(num_fins = 3, length_fins = bottom_length, fin_space = 4, fin_height = 5, bottom_layer_start = 0.18)
 #fin(layers, extrusion_width, layer_height=0.15, startx = top_left[0], start_y=top_left[1], start_z=0.15)
 #g.extrude = False
 #g.abs_move(60, 130)
