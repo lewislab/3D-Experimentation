@@ -5,7 +5,7 @@ import numpy as np
 FDM_feed = 16
 silver_feed = 15
 retraction_feed = 50
-travel_speed = 90*60
+travel_speed = 120
 total_count =0;
 width_change = 1
 top_left = (96,70)
@@ -177,6 +177,7 @@ def fins(extrusion_width, num_fins, fin_spacing, layer_height=0.15,num_layers=1,
                 g.move(y=current_length-0.5*extrusion_width-2*j*extrusion_width,  Z=0)
                 g.move(x=extrusion_width, y=-0.5*extrusion_width,  Z=0)
             g.extrude = False
+            set_feed(tran
             retract()
         
 def silver_upwards_meander(cross_beam_layers, bottom_layer_start, Ag_bottom_length, Ag_top_length, meander_space, layer_height, num_layers, offset, Ag_feed, width_change_per_layer = 0.04375, side = 'left', Ag_start_x = top_left[0] , Ag_start_y = top_left[1], Ag_start_z = 0.15):
@@ -233,6 +234,7 @@ def heat_sink(num_fins, length_fins, fin_space, fin_height, bottom_layer_start =
         g.abs_move((top_left[0]+0.5*extrusion_width-cross_beam_offset), top_left[1]-0.5*extrusion_width)
         g.abs_move(Z=bottom_layer_start+layer_height*j)
         g.extrude = True
+        unretract()
         g.move(x=cross_beam_length)
         g.move(y=-(bottom_length-extrusion_width))
         g.move(x=-cross_beam_length)
